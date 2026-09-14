@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MedRoute — Symptom Triage &amp; Specialist Booking Assistant</title>
+<style>
+  :root {
+    --primary: #0d7a6f;
+    --primary-dark: #0a5f57;
+    --primary-light: #e6f4f2;
+    --accent: #14b8a6;
+    --danger: #b91c1c;
+    --danger-light: #fee2e2;
+    --warn: #b45309;
+    --warn-light: #fef3c7;
+    --info: #1d4ed8;
+    --info-light: #dbeafe;
+    --pending: #7c3aed;
+    --pending-light: #ede9fe;
+    --ok: #15803d;
+    --ok-light: #dcfce7;
+    --bg: #f4f7f7;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100vh;
+  }
+
+  /* ── Header ─────────────────────────────────────────── */
+  header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: #fff; padding: 14px 20px; display: flex; align-items: center;
+    justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15); position: sticky; top: 0; z-index: 50;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.15);
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+    border: 1px solid rgba(255,255,255,.25);
+  }
+  .brand h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: .3px; }
+  .brand small { display: block; font-size: .72rem; opacity: .85; font-weight: 400; }
+  .view-toggle { display: flex; background: rgba(255,255,255,.12); border-radius: 10px; padding: 3px; gap: 3px; }
+  .view-toggle button {
+    border: none; background: transparent; color: #fff; padding: 8px 16px;
+    border-radius: 8px; cursor: pointer; font-size: .85rem; font-weight: 600;
+    transition: background .15s;
+  }
+  .view-toggle button.active { background: #fff; color: var(--primary-dark); }
+
+  /* ── Disclaimer strip (BR-2) ─────────────────────────── */
+  .disclaimer {
+    background: var(--warn-light); color: var(--warn); font-size: .78rem;
+    padding: 8px 20px; text-align: center; border-bottom: 1px solid #fde68a;
+    font-weight: 500;
+  }
+
+  /* ── Layout ──────────────────────────────────────────── */
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+  .panel-title { font-size: .95rem; font-weight: 700; color: var(--muted); margin: 18px 0 10px; text-transform: uppercase; letter-spacing: .5px; }
+
+  /* ── Patient view ────────────────────────────────────── */
+  .patient-grid { display: grid; grid-template-columns: 1fr 340px; gap: 18px; align-items: start; }
+  @media (max-width: 900px) { .patient-grid { grid-template-columns: 1fr; } }
+
+  .chat-card {
+    background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0,0,0,.05); display: flex; flex-direction: column;
+    height: 640px; overflow: hidden;
+  }
+  .chat-head {
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px; background: #fafcfc;
+  }
+  .chat-head .avatar {
+    width: 36px; height: 36px; border-radius: 50%; background: var(--primary-light);
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .chat-head .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; }
+  .chat-head h2 { font-size: .95rem; }
+  .chat-head small { color: var(--muted); font-size: .72rem; }
+  #chat-log { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+  #chat-log::-webkit-scrollbar { width: 6px; }
+  #chat-log::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+  .msg { max-width: 82%; padding: 11px 14px; border-radius: 14px; font-size: .9rem; line-height: 1.5; animation: fadeUp .25s ease; }
+  .msg.bot { background: var(--primary-light); color: var(--primary-dark); border-bottom-left-radius: 4px; align-self: flex-start; }
+  .msg.user { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
+  .msg.system { background: var(--info-light); color: var(--info); font-size: .8rem; align-self: center; text-align: center; border-radius: 8px; }
+  .msg.emergency {
+    background: var(--danger-light); color: var(--danger); border: 2px solid #fca5a5;
+    border-radius: 14px; align-self: flex-start; max-width: 92%; font-size: .92rem;
+  }
+  .msg.emergency strong { display: block; font-size: 1.05rem; margin-bottom: 6px; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .typing { display: flex; gap: 4px; padding: 12px 16px; align-self: flex-start; }
+  .typing span { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: blink 1.2s infinite; }
+  .typing span:nth-child(2) { animation-delay: .2s; }
+  .typing span:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+
+  .quick-replies { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); background: #fafcfc; }
+  .qr-btn {
+    border: 1.5px solid var(--primary); background: #fff; color: var(--primary);
+    padding: 9px 16px; border-radius: 999px; cursor: pointer; font-size: .84rem;
+    font-weight: 600; transition: all .15s;
+  }
+  .qr-btn:hover { background: var(--primary); color: #fff; }
+  .qr-btn.danger { border-color: var(--danger); color: var(--danger); }
+  .qr-btn.danger:hover { background: var(--danger); color: #fff; }
+
+  .name-box { align-self: flex-end; width: 82%; }
+  .name-box input {
+    width: 100%; padding: 11px 14px; border-radius: 12px;
+    border: 1.5px solid var(--border); font-size: .88rem;
+  }
+
+  /* ── Doctor cards ────────────────────────────────────── */
+  .doctor-card {
+    border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px;
+    background: #fff; display: flex; align-items: center; gap: 12px;
+    width: 100%; transition: all .15s; cursor: pointer;
+  }
+  .doctor-card:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(13,122,111,.15); }
+  .doctor-card .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .doctor-card .info { flex: 1; min-width: 0; }
+  .doctor-card .info h4 { font-size: .9rem; }
+  .doctor-card .info small { color: var(--muted); font-size: .76rem; display: block; margin-top: 2px; }
+  .doctor-card .slot { background: var(--ok-light); color: var(--ok); font-size: .74rem; font-weight: 700; padding: 5px 10px; border-radius: 6px; white-space: nowrap; }
+
+  /* ── Bookings sidebar ────────────────────────────────── */
+  .side-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.05); max-height: 640px; overflow-y: auto;
+  }
+  .side-card h3 { font-size: .95rem; margin-bottom: 4px; }
+  .side-card p.sub { font-size: .75rem; color: var(--muted); margin-bottom: 12px; }
+  .booking {
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px;
+    background: #fafafa;
+  }
+  .booking .bk-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .booking h4 { font-size: .85rem; }
+  .booking small { color: var(--muted); font-size: .73rem; display: block; margin-top: 3px; }
+  .chip { font-size: .68rem; font-weight: 800; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+  .chip.pending { background: var(--pending-light); color: var(--pending); }
+  .chip.confirmed { background: var(--ok-light); color: var(--ok); }
+  .chip.referred { background: var(--warn-light); color: var(--warn); }
+  .bk-history { margin-top: 8px; border-top: 1px dashed var(--border); padding-top: 8px; }
+  .bk-history small { line-height: 1.7; }
+  .empty-note { color: var(--muted); font-size: .8rem; text-align: center; padding: 18px 6px; }
+
+  /* ── Doctor dashboard ─────────────────────────────────── */
+  .doc-select-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px; margin-bottom: 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  }
+  .doc-select-card label { font-weight: 700; font-size: .88rem; }
+  .doc-select-card select {
+    padding: 10px 14px; border-radius: 8px; border: 1.5px solid var(--border); font-size: .88rem;
+    background: #fff; min-width: 320px; color: var(--text); font-weight: 600;
+  }
+  .req-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  }
+  .req-card .req-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .req-card h3 { font-size: .95rem; }
+  .triage-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .triage-tags span { background: var(--primary-light); color: var(--primary-dark); font-size: .72rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+  .req-card .slot-line { font-size: .85rem; font-weight: 700; color: var(--ok); margin-bottom: 4px; }
+  .req-card .ref-note { font-size: .76rem; color: var(--muted); margin-bottom: 12px; }
+  .req-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .btn {
+    border: none; border-radius: 8px; padding: 10px 22px; font-size: .85rem; font-weight: 700;
+    cursor: pointer; transition: all .15s;
+  }
+  .btn-accept { background: var(--ok); color: #fff; }
+  .btn-accept:hover { background: #116932; }
+  .btn-refer { background: #fff; color: var(--warn); border: 1.5px solid var(--warn); }
+  .btn-refer:hover { background: var(--warn); color: #fff; }
+  .refer-box { display: none; margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 14px; }
+  .refer-box.open { display: block; }
+  .refer-box select {
+    padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--border); font-size: .84rem; min-width: 300px; background: #fff; margin-top: 8px;
+  }
+  .refer-box .btn { margin-top: 10px; background: var(--warn); color: #fff; }
+  .chain-alert {
+    background: var(--danger-light); border: 1.5px solid #fca5a5; color: var(--danger);
+    border-radius: 10px; padding: 10px 14px; font-size: .78rem; font-weight: 600; margin-top: 10px;
+  }
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  }
+  .stat .num { font-size: 1.5rem; font-weight: 800; color: var(--primary-dark); }
+  .stat .lbl { font-size: .72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
+  footer { text-align: center; color: var(--muted); font-size: .74rem; padding: 24px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">🩺</div>
+    <div>
+      <h1>MedRoute</h1>
+      <small>Symptom Triage &amp; Specialist Booking Assistant</small>
+    </div>
+  </div>
+  <div class="view-toggle">
+    <button id="tab-patient" class="active" onclick="switchView('patient')">💬 Patient Chat</button>
+    <button id="tab-doctor" onclick="switchView('doctor')">🩺 Doctor Dashboard</button>
+  </div>
+</header>
+
+<div class="disclaimer">
+  ⚠️ MedRoute does not diagnose conditions or recommend treatment. It matches symptoms to a medical specialty and facilitates booking only. For emergencies, call 10177 (SA Ambulance) or go to your nearest emergency room.
+</div>
+
+<!-- ══════════════════ PATIENT VIEW ══════════════════ -->
+<div class="wrap" id="view-patient">
+  <div class="patient-grid">
+
+    <div class="chat-card">
+      <div class="chat-head">
+        <div class="avatar">🤖</div>
+        <div>
+          <h2>MedRoute Assistant</h2>
+          <small><span class="status-dot"></span> Online — guided symptom triage</small>
+        </div>
+        <div style="margin-left:auto">
+          <button class="qr-btn" style="padding:7px 14px; font-size:.78rem" onclick="restartTriage()">↺ Restart</button>
+        </div>
+      </div>
+      <div id="chat-log"></div>
+      <div class="quick-replies" id="quick-replies"></div>
+    </div>
+
+    <div>
+      <div class="panel-title">My Bookings</div>
+      <div class="side-card">
+        <h3>Booking Status</h3>
+        <p class="sub">Every request stays visible until your doctor acts on it (BR-3).</p>
+        <div id="booking-list"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════ DOCTOR VIEW ══════════════════ -->
+<div class="wrap hidden" id="view-doctor">
+  <div class="stat-row" id="doc-stats"></div>
+
+  <div class="doc-select-card">
+    <label>👩‍⚕️ You are viewing as:</label>
+    <select id="doctor-select" onchange="renderDoctorRequests()"></select>
+    <small style="color:var(--muted); font-size:.75rem">Prototype — no authentication in this iteration</small>
+  </div>
+
+  <div class="panel-title">Incoming Booking Requests (UC-02)</div>
+  <div id="request-list"></div>
+</div>
+
+<footer>
+  MedRoute Prototype · Clickatell 1-Month AI Bootcamp — Week 1 · Author: Freddy Thosago · September 2026<br/>
+  Mock data only — no real patient health data is captured or stored. Triage answers exist for the session only.
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   MedRoute Prototype — mock data, triage engine, booking marketplace
+   ═══════════════════════════════════════════════════════════════════ */
+
+const SPECIALTIES = {
+  skin:         'Dermatologist',
+  chest:        'Cardiologist',
+  digestive:    'Gastroenterologist',
+  joint:        'Orthopaedic Surgeon',
+  neurological: 'Neurologist',
+  mood:         'Psychiatrist',
+  general:      'General Practitioner'
+};
+
+const CATEGORIES = [
+  { key: 'skin',         label: '🧴 Skin — rash, irritation, spots',    specialty: SPECIALTIES.skin },
+  { key: 'chest',        label: '❤️ Chest / Heart — pain, palpitations', specialty: SPECIALTIES.chest },
+  { key: 'digestive',    label: '🍽️ Digestive — stomach, bowel',      specialty: SPECIALTIES.digestive },
+  { key: 'joint',        label: '🦴 Joint / Bone — pain, stiffness',    specialty: SPECIALTIES.joint },
+  { key: 'neurological', label: '🧠 Neurological — headaches, numbness', specialty: SPECIALTIES.neurological },
+  { key: 'mood',         label: '💛 Mood — stress, anxiety, low mood', specialty: SPECIALTIES.mood },
+  { key: 'general',      label: '🩹 General — something else',         specialty: SPECIALTIES.general }
+];
+
+/* Emergency red-flag screening (AF-01) — asked before continuing triage */
+const EMERGENCY_SCREENS = {
+  chest: {
+    question: 'Before we continue — are you currently experiencing any of the following with your chest symptoms?',
+    options: [
+      { key: 'sob',     label: '😮‍💨 Shortness of breath' },
+      { key: 'sweat',   label: '💦 Cold sweats' },
+      { key: 'radiate', label: '➡️ Pain spreading to arm, neck or jaw' }
+    ]
+  },
+  neurological: {
+    question: 'Before we continue — are you currently experiencing any of the following?',
+    options: [
+      { key: 'weak',   label: '💪 Sudden weakness on one side' },
+      { key: 'speech', label: '🗣️ Sudden slurred speech' },
+      { key: 'worst',  label: '⚡ Worst headache of your life, sudden onset' }
+    ]
+  }
+};
+
+/* Mock doctor registry — static prototype data */
+const DOCTORS = [
+  { id: 'd1',  name: 'Dr. Naledi Khumalo',  specialty: 'card', specialtyLabel: 'Cardiologist',        location: 'Sandton, JHB',      distance: 4.2,  slots: ['Tue 09:00', 'Wed 14:30', 'Fri 11:15'] },
+  { id: 'd2',  name: 'Dr. James Pretorius', specialty: 'card', specialtyLabel: 'Cardiologist',        location: 'Rosebank, JHB',     distance: 7.8,  slots: ['Mon 15:00', 'Thu 10:45'] },
+  { id: 'd3',  name: 'Dr. Aisha Patel',    specialty: 'derm', specialtyLabel: 'Dermatologist',         location: 'Braamfontein, JHB', distance: 3.1,  slots: ['Tue 11:30', 'Wed 09:00', 'Fri 16:00'] },
+  { id: 'd4',  name: 'Dr. Lerato Mokoena',  specialty: 'derm', specialtyLabel: 'Dermatologist',        location: 'Fourways, JHB',     distance: 12.4, slots: ['Mon 08:30', 'Thu 13:15'] },
+  { id: 'd5',  name: 'Dr. Sipho Ndlovu',    specialty: 'gast', specialtyLabel: 'Gastroenterologist',   location: 'Parktown, JHB',    distance: 5.6,  slots: ['Tue 16:00', 'Fri 09:30'] },
+  { id: 'd6',  name: 'Dr. Fatima Desai',    specialty: 'gast', specialtyLabel: 'Gastroenterologist',   location: 'Bedfordview, JHB', distance: 9.3,  slots: ['Wed 10:00', 'Thu 15:45'] },
+  { id: 'd7',  name: 'Dr. Pieter van Wyk',  specialty: 'orth', specialtyLabel: 'Orthopaedic Surgeon',  location: 'Melrose Arch, JHB', distance: 6.0,  slots: ['Mon 13:00', 'Wed 08:00', 'Fri 14:00'] },
+  { id: 'd8',  name: 'Dr. Thandi Mbeki',    specialty: 'orth', specialtyLabel: 'Orthopaedic Surgeon',   location: 'Randburg, JHB',     distance: 10.2, slots: ['Tue 10:30', 'Thu 09:00'] },
+  { id: 'd9',  name: 'Dr. Mark Goldberg',    specialty: 'neur', specialtyLabel: 'Neurologist',         location: 'Houghton, JHB',     distance: 5.4,  slots: ['Mon 11:00', 'Wed 15:30'] },
+  { id: 'd10', name: 'Dr. Nomvula Zulu',    specialty: 'neur', specialtyLabel: 'Neurologist',          location: 'Sandton, JHB',      distance: 6.9,  slots: ['Tue 08:15', 'Fri 13:45'] },
+  { id: 'd11', name: 'Dr. Sarah Cohen',     specialty: 'psyc', specialtyLabel: 'Psychiatrist',         location: 'Greenside, JHB',   distance: 4.8,  slots: ['Mon 09:30', 'Wed 17:00'] },
+  { id: 'd12', name: 'Dr. Kagiso Rathebe',  specialty: 'psyc', specialtyLabel: 'Psychiatrist',         location: 'Rosebank, JHB',    distance: 7.1,  slots: ['Tue 12:00', 'Thu 16:30'] },
+  { id: 'd13', name: 'Dr. Bongani Sithole', specialty: 'gp',   specialtyLabel: 'General Practitioner', location: 'Braamfontein, JHB', distance: 2.3,  slots: ['Mon 08:00', 'Tue 08:00', 'Wed 08:00', 'Thu 08:00', 'Fri 08:00'] },
+  { id: 'd14', name: 'Dr. Anna Liebenberg', specialty: 'gp',   specialtyLabel: 'General Practitioner', location: 'Auckland Park, JHB', distance: 3.5, slots: ['Tue 14:00', 'Thu 11:00'] }
+];
+
+const SPECIALTY_TO_KEY = {
+  'Dermatologist': 'derm', 'Cardiologist': 'card', 'Gastroenterologist': 'gast',
+  'Orthopaedic Surgeon': 'orth', 'Neurologist': 'neur', 'Psychiatrist': 'psyc', 'General Practitioner': 'gp'
+};
+
+/* ── Booking store (localStorage persistence for the demo) ───────── */
+let bookings = JSON.parse(localStorage.getItem('medroute_bookings') || '[]');
+const saveBookings = () => localStorage.setItem('medroute_bookings', JSON.stringify(bookings));
+
+/* ── Chat helpers ───────────────────────────────────────────────── */
+const chatLog = document.getElementById('chat-log');
+const qrBox   = document.getElementById('quick-replies');
+
+function addMsg(text, who = 'bot', html = false) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + who;
+  if (html) div.innerHTML = text; else div.textContent = text;
+  chatLog.appendChild(div);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return div;
+}
+
+function botSay(text, html = false) {
+  return new Promise(resolve => {
+    const t = document.createElement('div');
+    t.className = 'typing';
+    t.innerHTML = '<span></span><span></span><span></span>';
+    chatLog.appendChild(t);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    setTimeout(() => { t.remove(); addMsg(text, 'bot', html); resolve(); }, 550);
+  });
+}
+
+function showReplies(options) {
+  qrBox.innerHTML = '';
+  options.forEach(opt => {
+    const b = document.createElement('button');
+    b.className = 'qr-btn' + (opt.danger ? ' danger' : '');
+    b.textContent = opt.label;
+    b.onclick = () => {
+      qrBox.innerHTML = '';
+      addMsg(opt.label, 'user');
+      opt.action();
+    };
+    qrBox.appendChild(b);
+  });
+}
+
+/* ── Triage state machine (UC-01) ───────────────────────────────── */
+let triage = null;
+
+function restartTriage() {
+  chatLog.innerHTML = '';
+  qrBox.innerHTML = '';
+  triage = { name: '', category: '', duration: '', severity: '' };
+  greet();
+}
+
+async function greet() {
+  await botSay('Hello 👋 Welcome to MedRoute. I\'ll help you find the right specialist and book an appointment.');
+  await botSay('First — what should I call you? (first name only)');
+  const nameBox = document.createElement('div');
+  nameBox.className = 'name-box';
+  const input = document.createElement('input');
+  input.placeholder = 'Type your first name…';
+  nameBox.appendChild(input);
+  chatLog.appendChild(nameBox);
+  input.focus();
+  input.onkeydown = e => {
+    if (e.key === 'Enter' && input.value.trim()) {
+      triage.name = input.value.trim();
+      nameBox.remove();
+      addMsg(triage.name, 'user');
+      askCategory();
+    }
+  };
+}
+
+async function askCategory() {
+  await botSay(`Nice to meet you, ${triage.name}. What general area is bothering you most right now?`);
+  showReplies(CATEGORIES.map(c => ({ label: c.label, action: () => selectCategory(c) })));
+}
+
+function selectCategory(cat) {
+  triage.category = cat;
+  const screen = EMERGENCY_SCREENS[cat.key];
+  if (screen) askEmergencyScreen(screen);
+  else askDuration();
+}
+
+/* AF-01 — Emergency red-flag screening */
+async function askEmergencyScreen(screen) {
+  await botSay(screen.question, false);
+  const opts = screen.options.map(o => ({
+    label: o.label,
+    danger: true,
+    action: () => triggerEmergency(o.label)
+  }));
+  opts.push({ label: '✅ None of these', action: askDuration });
+  showReplies(opts);
+}
+
+function triggerEmergency(sign) {
+  const div = document.createElement('div');
+  div.className = 'msg emergency';
+  div.innerHTML =
+    '<strong>🚨 EMERGENCY — Please Stop</strong>' +
+    'You reported <b>' + sign + '</b>. This may be a medical emergency.<br/><br/>' +
+    '➡️ Call an ambulance now: <b>10177</b> (SA Ambulance) or <b>112</b> (mobile)<br/>' +
+    '➡️ Or go to your <b>nearest emergency room</b> immediately.<br/><br/>' +
+    'MedRoute does not book routine appointments when emergency symptoms are detected. Please seek urgent care first.';
+  chatLog.appendChild(div);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  addMsg('Triage halted for your safety. Once you are safe and well, you can restart triage for a separate, non-emergency concern.', 'system');
+  showReplies([{ label: '↺ Restart triage for a different concern', action: restartTriage }]);
+}
+
+async function askDuration() {
+  await botSay('Got it. How long has this been going on?');
+  showReplies([
+    { label: '🕐 Today',            action: () => { triage.duration = 'Today'; askSeverity(); } },
+    { label: '📅 A few days',       action: () => { triage.duration = 'A few days'; askSeverity(); } },
+    { label: '🗓️ Weeks or longer', action: () => { triage.duration = 'Weeks or longer'; askSeverity(); } }
+  ]);
+}
+
+async function askSeverity() {
+  await botSay('How would you rate the severity?');
+  showReplies([
+    { label: '🟢 Mild',     action: () => { triage.severity = 'Mild'; showShortlist(); } },
+    { label: '🟡 Moderate', action: () => { triage.severity = 'Moderate'; showShortlist(); } },
+    { label: '🔴 Severe',   action: () => { triage.severity = 'Severe'; showShortlist(); } }
+  ]);
+}
+
+/* BR-1: only doctors whose specialty matches the triage outcome */
+async function showShortlist() {
+  const specialtyKey = SPECIALTY_TO_KEY[triage.category.specialty];
+  const matches = DOCTORS.filter(d => d.specialty === specialtyKey)
+                        .sort((a, b) => a.distance - b.distance);
+
+  await botSay(
+    'Based on your answers — <b>' + triage.category.label.split('—')[0].trim() + '</b> symptoms, ' +
+    '<b>' + triage.duration.toLowerCase() + '</b>, <b>' + triage.severity.toLowerCase() + '</b> severity — ' +
+    'the right specialist to see is a <b>' + triage.category.specialty + '</b>. ' +
+    '(MedRoute recommends a specialty, never a diagnosis.)',
+    true
+  );
+  await botSay('Here are ' + matches.length + ' ' + triage.category.specialty + 's near you. Tap one to see their available slots:');
+
+  matches.forEach(d => {
+    const card = document.createElement('div');
+    card.className = 'doctor-card';
+    card.innerHTML =
+      '<div class="avatar">👩\u200D⚕️</div>' +
+      '<div class="info">' +
+        '<h4>' + d.name + ' — ' + d.specialtyLabel + '</h4>' +
+        '<small>📍 ' + d.location + ' · ' + d.distance + ' km away</small>' +
+      '</div>' +
+      '<div class="slot">next: ' + d.slots[0] + '</div>';
+    card.onclick = () => selectDoctor(d);
+    chatLog.appendChild(card);
+  });
+  chatLog.scrollTop = chatLog.scrollHeight;
+  addMsg('Tap a doctor to request a slot · or restart triage from the top', 'system');
+}
+
+async function selectDoctor(doc) {
+  addMsg(doc.name + ' — ' + doc.slots.join(', '), 'user');
+  await botSay('Great choice. ' + doc.name + ' (' + doc.specialtyLabel + ', ' + doc.location + ') has these slots available:');
+  showReplies([
+    ...doc.slots.map(s => ({ label: '📅 ' + s, action: () => requestBooking(doc, s) })),
+    { label: '↺ Pick a different doctor', action: restartTriage }
+  ]);
+}
+
+async function requestBooking(doc, slot) {
+  const bk = {
+    id: 'BK-' + Date.now().toString(36).toUpperCase(),
+    patientName: triage.name,
+    category: triage.category.label,
+    specialty: triage.category.specialty,
+    duration: triage.duration,
+    severity: triage.severity,
+    doctorId: doc.id,
+    doctorName: doc.name,
+    slot: slot,
+    status: 'Pending',
+    chain: 0,
+    referredFrom: null,
+    history: [{ event: 'Booking requested by patient', at: new Date().toLocaleString('en-ZA') }]
+  };
+  bookings.push(bk);
+  saveBookings();
+  renderBookings();
+
+  await botSay('✅ Your request has been sent to ' + doc.name + ' for <b>' + slot + '</b>.');
+  await botSay(
+    'Booking reference: <b>' + bk.id + '</b> — status: <b style="color:var(--pending)">PENDING</b>. ' +
+    'Your doctor will either accept it or refer you to an even better-suited colleague. ' +
+    'Track it in "My Bookings" on the right, or switch to the Doctor Dashboard to see the marketplace in action.',
+    true
+  );
+  showReplies([
+    { label: '↺ Start a new triage', action: restartTriage },
+    { label: '👀 Switch to Doctor Dashboard', action: () => switchView('doctor') }
+  ]);
+}
+
+/* ── Patient bookings panel (BR-3) ───────────────────────────────── */
+function renderBookings() {
+  const box = document.getElementById('booking-list');
+  const mine = bookings.filter(b => b.patientName === (triage ? triage.name : ''));
+  const show = mine.length ? mine : bookings.slice(-5);
+  if (!show.length) {
+    box.innerHTML = '<div class="empty-note">No bookings yet. Complete a triage to request an appointment.</div>';
+    return;
+  }
+  box.innerHTML = show.slice().reverse().map(b => {
+    const chainNote = b.chain > 0
+      ? '<small style="color:var(--warn)">↪ Referred ' + b.chain + '× — now with ' + b.doctorName + '</small>'
+      : '';
+    const hist = b.history.map(h =>
+      '<small>• ' + h.event + ' <span style="opacity:.6">(' + h.at + ')</span></small>'
+    ).join('');
+    return '<div class="booking">' +
+      '<div class="bk-top">' +
+        '<h4>' + b.doctorName + '</h4>' +
+        '<span class="chip ' + b.status.toLowerCase() + '">' + b.status + '</span>' +
+      '</div>' +
+      '<small>' + b.specialty + ' · ' + b.slot + ' · Ref ' + b.id + '</small>' +
+      chainNote +
+      '<div class="bk-history">' + hist + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DOCTOR DASHBOARD — UC-02 (accept / refer)
+   ═══════════════════════════════════════════════════════════════════ */
+function switchView(view) {
+  document.getElementById('view-patient').classList.toggle('hidden', view !== 'patient');
+  document.getElementById('view-doctor').classList.toggle('hidden', view !== 'doctor');
+  document.getElementById('tab-patient').classList.toggle('active', view === 'patient');
+  document.getElementById('tab-doctor').classList.toggle('active', view === 'doctor');
+  if (view === 'doctor') { populateDoctorSelect(); renderDoctorRequests(); }
+}
+
+function populateDoctorSelect() {
+  const sel = document.getElementById('doctor-select');
+  const current = sel.value;
+  sel.innerHTML = DOCTORS.map(d =>
+    '<option value="' + d.id + '">' + d.name + ' — ' + d.specialtyLabel + '</option>'
+  ).join('');
+  if (current) sel.value = current;
+}
+
+function renderDoctorRequests() {
+  const docId = document.getElementById('doctor-select').value;
+  if (!docId) return;
+  const mine = bookings.filter(b => b.doctorId === docId && b.status === 'Pending');
+  const stats = {
+    pending:   mine.length,
+    confirmed: bookings.filter(b => b.doctorId === docId && b.status === 'Confirmed').length,
+    referrals: bookings.filter(b => b.doctorId === docId && b.chain > 0).length
+  };
+  document.getElementById('doc-stats').innerHTML =
+    '<div class="stat"><div class="num">' + stats.pending + '</div><div class="lbl">Pending</div></div>' +
+    '<div class="stat"><div class="num">' + stats.confirmed + '</div><div class="lbl">Confirmed</div></div>' +
+    '<div class="stat"><div class="num">' + stats.referrals + '</div><div class="lbl">Received via referral</div></div>';
+
+  const list = document.getElementById('request-list');
+  if (!mine.length) {
+    list.innerHTML = '<div class="side-card" style="max-height:none"><div class="empty-note">📭 No pending requests for this doctor right now. Use the Patient Chat to create a booking, or select another doctor.</div></div>';
+    return;
+  }
+  list.innerHTML = '';
+  mine.forEach(bk => {
+    const card = document.createElement('div');
+    card.className = 'req-card';
+    const chainBlock = bk.chain >= 3
+      ? '<div class="chain-alert">⚠️ BR-5 alert: this booking has been referred ' + bk.chain + ' times. In production, an administrator would be notified beyond 3 referrals to prevent patients being passed around indefinitely.</div>'
+      : (bk.chain > 0
+          ? '<div class="ref-note">↪ Referred onward ' + bk.chain + '× — full triage context carried over.</div>'
+          : '');
+    const tags = bk.category.split('—')[0].trim();
+    card.innerHTML =
+      '<div class="req-head">' +
+        '<div>' +
+          '<h3>' + bk.patientName + ' — Booking ' + bk.id + '</h3>' +
+          '<div class="triage-tags">' +
+            '<span>' + tags + '</span>' +
+            '<span>' + bk.duration + '</span>' +
+            '<span>' + bk.severity + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<span class="chip pending">Pending</span>' +
+      '</div>' +
+      '<div class="slot-line">📅 Requested slot: ' + bk.slot + '</div>' +
+      '<div class="ref-note">Specialty match: ' + bk.specialty + (bk.chain > 0 ? ' · referral chain: ' + bk.chain : '') + '</div>' +
+      chainBlock +
+      '<div class="req-actions">' +
+        '<button class="btn btn-accept" onclick="acceptBooking(\'' + bk.id + '\')">✓ Accept</button>' +
+        '<button class="btn btn-refer" onclick="toggleReferBox(\'' + bk.id + '\')">↪ Refer to another specialist</button>' +
+      '</div>' +
+      '<div class="refer-box" id="refer-' + bk.id + '">' +
+        '<label style="font-size:.8rem; font-weight:700; color:var(--muted)">Choose target specialist (BR-4 — a new bookable record is always created):</label>' +
+        '<select id="refer-select-' + bk.id + '">' +
+          DOCTORS.filter(d => d.id !== docId).map(d =>
+            '<option value="' + d.id + '">' + d.name + ' — ' + d.specialtyLabel + ' (' + d.location + ')</option>'
+          ).join('') +
+        '</select>' +
+        '<button class="btn" onclick="referBooking(\'' + bk.id + '\')">Confirm referral →</button>' +
+      '</div>';
+    list.appendChild(card);
+  });
+}
+
+function toggleReferBox(id) {
+  document.getElementById('refer-' + id).classList.toggle('open');
+}
+
+/* Accept path — status → Confirmed */
+function acceptBooking(id) {
+  const bk = bookings.find(b => b.id === id);
+  if (!bk) return;
+  bk.status = 'Confirmed';
+  bk.history.push({ event: 'Accepted by ' + bk.doctorName, at: new Date().toLocaleString('en-ZA') });
+  saveBookings();
+  renderBookings();
+  renderDoctorRequests();
+}
+
+/* AF-02 — Refer path: mark Referred, create new Pending booking (BR-4) */
+function referBooking(id) {
+  const bk = bookings.find(b => b.id === id);
+  if (!bk) return;
+  const targetId = document.getElementById('refer-select-' + id).value;
+  const target = DOCTORS.find(d => d.id === targetId);
+  bk.status = 'Referred';
+  bk.history.push({ event: 'Referred by ' + bk.doctorName + ' to ' + target.name, at: new Date().toLocaleString('en-ZA') });
+  saveBookings();
+
+  const newBk = {
+    id: 'BK-' + Date.now().toString(36).toUpperCase(),
+    patientName: bk.patientName,
+    category: bk.category,
+    specialty: target.specialtyLabel,
+    duration: bk.duration,
+    severity: bk.severity,
+    doctorId: target.id,
+    doctorName: target.name,
+    slot: target.slots[0],
+    status: 'Pending',
+    chain: bk.chain + 1,
+    referredFrom: bk.id,
+    history: bk.history.concat([{
+      event: 'Referral received — triage context carried over. Now pending with ' + target.name + ' (' + target.slots[0] + ')',
+      at: new Date().toLocaleString('en-ZA')
+    }])
+  };
+  bookings.push(newBk);
+  saveBookings();
+  renderBookings();
+  renderDoctorRequests();
+}
+
+/* ── Boot ────────────────────────────────────────────────────────── */
+restartTriage();
+renderBookings();
+</script>
+</body>
+</html>

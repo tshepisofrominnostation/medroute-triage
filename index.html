@@ -6,211 +6,354 @@
 <title>MedRoute — Symptom Triage &amp; Specialist Booking Assistant</title>
 <style>
   :root {
-    --primary: #0d7a6f;
-    --primary-dark: #0a5f57;
-    --primary-light: #e6f4f2;
-    --accent: #14b8a6;
-    --danger: #b91c1c;
-    --danger-light: #fee2e2;
-    --warn: #b45309;
-    --warn-light: #fef3c7;
-    --info: #1d4ed8;
-    --info-light: #dbeafe;
-    --pending: #7c3aed;
-    --pending-light: #ede9fe;
-    --ok: #15803d;
-    --ok-light: #dcfce7;
-    --bg: #f4f7f7;
-    --card: #ffffff;
-    --text: #1f2937;
-    --muted: #6b7280;
-    --border: #e5e7eb;
-    --radius: 12px;
+    --bg-0: #060d17;
+    --bg-1: #0a1524;
+    --glass: rgba(255,255,255,.045);
+    --glass-2: rgba(255,255,255,.08);
+    --stroke: rgba(255,255,255,.09);
+    --stroke-hi: rgba(255,255,255,.18);
+    --teal: #2dd4bf;
+    --teal-soft: rgba(45,212,191,.14);
+    --teal-glow: rgba(45,212,191,.35);
+    --cyan: #22d3ee;
+    --violet: #a78bfa;
+    --amber: #fbbf24;
+    --rose: #fb7185;
+    --green: #34d399;
+    --red: #f87171;
+    --text: #e8eef6;
+    --text-2: #a7b4c7;
+    --text-3: #6b7c93;
+    --r-lg: 20px;
+    --r-md: 14px;
+    --r-sm: 10px;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background: var(--bg); color: var(--text); min-height: 100vh;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg-0); color: var(--text); min-height: 100vh;
+    overflow-x: hidden;
   }
 
-  /* ── Header ─────────────────────────────────────────── */
+  /* ── Ambient aurora background ─────────────────────────── */
+  .aurora { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  .aurora::before, .aurora::after {
+    content: ""; position: absolute; width: 60vw; height: 60vw; border-radius: 50%;
+    filter: blur(120px); opacity: .16;
+  }
+  .aurora::before { background: #2dd4bf; top: -25vw; right: -15vw; animation: drift 26s ease-in-out infinite alternate; }
+  .aurora::after  { background: #6366f1; bottom: -30vw; left: -20vw; animation: drift 32s ease-in-out infinite alternate-reverse; }
+  @keyframes drift {
+    0%   { transform: translate(0,0) scale(1); }
+    100% { transform: translate(6vw,4vh) scale(1.15); }
+  }
+  .grid-lines {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .5;
+    background-image:
+      linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 40%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 40%, transparent 100%);
+  }
+
+  /* ── Header ─────────────────────────────────────────────── */
   header {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-    color: #fff; padding: 14px 20px; display: flex; align-items: center;
-    justify-content: space-between; flex-wrap: wrap; gap: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.15); position: sticky; top: 0; z-index: 50;
+    position: sticky; top: 0; z-index: 60;
+    background: rgba(6,13,23,.72); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--stroke);
+    padding: 14px 28px; display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
   }
-  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
   .logo {
-    width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.15);
+    width: 44px; height: 44px; border-radius: 14px; position: relative;
+    background: linear-gradient(135deg, #2dd4bf, #0ea5e9);
     display: flex; align-items: center; justify-content: center; font-size: 22px;
-    border: 1px solid rgba(255,255,255,.25);
+    box-shadow: 0 0 24px var(--teal-glow), inset 0 1px 0 rgba(255,255,255,.35);
   }
-  .brand h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: .3px; }
-  .brand small { display: block; font-size: .72rem; opacity: .85; font-weight: 400; }
-  .view-toggle { display: flex; background: rgba(255,255,255,.12); border-radius: 10px; padding: 3px; gap: 3px; }
-  .view-toggle button {
-    border: none; background: transparent; color: #fff; padding: 8px 16px;
-    border-radius: 8px; cursor: pointer; font-size: .85rem; font-weight: 600;
-    transition: background .15s;
+  .logo::after {
+    content: ""; position: absolute; inset: -3px; border-radius: 17px;
+    background: linear-gradient(135deg, rgba(45,212,191,.5), transparent 60%);
+    filter: blur(8px); z-index: -1;
   }
-  .view-toggle button.active { background: #fff; color: var(--primary-dark); }
-
-  /* ── Disclaimer strip (BR-2) ─────────────────────────── */
-  .disclaimer {
-    background: var(--warn-light); color: var(--warn); font-size: .78rem;
-    padding: 8px 20px; text-align: center; border-bottom: 1px solid #fde68a;
-    font-weight: 500;
+  .brand h1 {
+    font-size: 1.3rem; font-weight: 800; letter-spacing: -.02em;
+    background: linear-gradient(90deg, #fff, #9adfd6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .brand small { display: block; font-size: .7rem; color: var(--text-3); font-weight: 500; letter-spacing: .04em; }
+  .seg {
+    display: flex; background: var(--glass); border: 1px solid var(--stroke);
+    border-radius: 13px; padding: 4px; gap: 4px;
+  }
+  .seg button {
+    border: none; background: transparent; color: var(--text-2); padding: 9px 20px;
+    border-radius: 9px; cursor: pointer; font-size: .84rem; font-weight: 600;
+    transition: all .2s; display: flex; align-items: center; gap: 7px;
+  }
+  .seg button:hover { color: var(--text); }
+  .seg button.active {
+    background: linear-gradient(135deg, var(--teal), #0ea5e9); color: #042220;
+    box-shadow: 0 2px 16px var(--teal-glow);
   }
 
-  /* ── Layout ──────────────────────────────────────────── */
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
-  .panel-title { font-size: .95rem; font-weight: 700; color: var(--muted); margin: 18px 0 10px; text-transform: uppercase; letter-spacing: .5px; }
-
-  /* ── Patient view ────────────────────────────────────── */
-  .patient-grid { display: grid; grid-template-columns: 1fr 340px; gap: 18px; align-items: start; }
-  @media (max-width: 900px) { .patient-grid { grid-template-columns: 1fr; } }
-
-  .chat-card {
-    background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
-    box-shadow: 0 1px 4px rgba(0,0,0,.05); display: flex; flex-direction: column;
-    height: 640px; overflow: hidden;
+  /* ── Disclaimer (BR-2) ──────────────────────────────────── */
+  .notice {
+    position: relative; z-index: 1; text-align: center; font-size: .76rem; font-weight: 600;
+    color: #fcd9a0; background: linear-gradient(90deg, transparent, rgba(245,158,11,.12), transparent);
+    border-bottom: 1px solid rgba(245,158,11,.18); padding: 8px 20px;
   }
+  .notice b { color: var(--amber); }
+
+  /* ── Layout ──────────────────────────────────────────────── */
+  .wrap { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 26px 20px 70px; }
+  .panel-title {
+    font-size: .74rem; font-weight: 800; color: var(--text-3); margin: 22px 0 12px;
+    text-transform: uppercase; letter-spacing: .14em; display: flex; align-items: center; gap: 10px;
+  }
+  .panel-title::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--stroke), transparent); }
+
+  .patient-grid { display: grid; grid-template-columns: 1fr 350px; gap: 22px; align-items: start; }
+  @media (max-width: 940px) { .patient-grid { grid-template-columns: 1fr; } }
+
+  /* ── Glass card base ────────────────────────────────────── */
+  .glass {
+    background: var(--glass); border: 1px solid var(--stroke); border-radius: var(--r-lg);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+  }
+
+  /* ── Chat card ──────────────────────────────────────────── */
+  .chat-card { display: flex; flex-direction: column; height: 684px; overflow: hidden; }
   .chat-head {
-    padding: 14px 18px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 10px; background: #fafcfc;
+    padding: 15px 20px; border-bottom: 1px solid var(--stroke);
+    display: flex; align-items: center; gap: 12px;
   }
-  .chat-head .avatar {
-    width: 36px; height: 36px; border-radius: 50%; background: var(--primary-light);
-    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  .bot-avatar {
+    width: 40px; height: 40px; border-radius: 13px; flex-shrink: 0;
+    background: linear-gradient(135deg, rgba(45,212,191,.25), rgba(34,211,238,.15));
+    border: 1px solid rgba(45,212,191,.3);
+    display: flex; align-items: center; justify-content: center; font-size: 19px;
+    box-shadow: 0 0 14px rgba(45,212,191,.2);
   }
-  .chat-head .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; }
-  .chat-head h2 { font-size: .95rem; }
-  .chat-head small { color: var(--muted); font-size: .72rem; }
-  #chat-log { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
-  #chat-log::-webkit-scrollbar { width: 6px; }
-  #chat-log::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+  .chat-head h2 { font-size: .98rem; font-weight: 700; letter-spacing: -.01em; }
+  .chat-head small { color: var(--text-3); font-size: .72rem; display: flex; align-items: center; gap: 6px; }
+  .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  .icon-btn {
+    margin-left: auto; background: var(--glass-2); border: 1px solid var(--stroke);
+    color: var(--text-2); padding: 8px 14px; border-radius: 10px; cursor: pointer;
+    font-size: .78rem; font-weight: 700; transition: all .2s;
+  }
+  .icon-btn:hover { border-color: var(--teal); color: var(--teal); }
 
-  .msg { max-width: 82%; padding: 11px 14px; border-radius: 14px; font-size: .9rem; line-height: 1.5; animation: fadeUp .25s ease; }
-  .msg.bot { background: var(--primary-light); color: var(--primary-dark); border-bottom-left-radius: 4px; align-self: flex-start; }
-  .msg.user { background: var(--primary); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
-  .msg.system { background: var(--info-light); color: var(--info); font-size: .8rem; align-self: center; text-align: center; border-radius: 8px; }
+  /* ── Triage stepper ─────────────────────────────────────── */
+  .stepper { display: flex; gap: 6px; padding: 12px 20px 4px; }
+  .step {
+    flex: 1; height: 4px; border-radius: 4px; background: rgba(255,255,255,.08);
+    position: relative; overflow: hidden; transition: background .3s;
+  }
+  .step::after {
+    content: ""; position: absolute; inset: 0; border-radius: 4px;
+    background: linear-gradient(90deg, var(--teal), var(--cyan));
+    transform: scaleX(0); transform-origin: left; transition: transform .5s ease;
+  }
+  .step.done::after, .step.on::after { transform: scaleX(1); }
+  .step.on::after { animation: stepGlow 1.6s ease-in-out infinite; }
+  @keyframes stepGlow { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+
+  /* ── Chat log ───────────────────────────────────────────── */
+  #chat-log { flex: 1; overflow-y: auto; padding: 18px 20px; display: flex; flex-direction: column; gap: 13px; }
+  #chat-log::-webkit-scrollbar { width: 5px; }
+  #chat-log::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 4px; }
+  #chat-log::-webkit-scrollbar-thumb:hover { background: var(--teal); }
+
+  .msg {
+    max-width: 82%; padding: 12px 16px; font-size: .9rem; line-height: 1.55;
+    border-radius: 16px; animation: rise .3s cubic-bezier(.21,1.02,.73,1);
+  }
+  .msg.bot {
+    background: linear-gradient(180deg, rgba(45,212,191,.13), rgba(34,211,238,.08));
+    border: 1px solid rgba(45,212,191,.22); color: #d3f3ee;
+    border-bottom-left-radius: 5px; align-self: flex-start;
+  }
+  .msg.bot b { color: #7ff0e0; }
+  .msg.user {
+    background: linear-gradient(135deg, var(--teal), #0ea5e9); color: #042220;
+    font-weight: 600; border-bottom-right-radius: 5px; align-self: flex-end;
+    box-shadow: 0 4px 18px rgba(45,212,191,.25);
+  }
+  .msg.system {
+    background: rgba(167,139,250,.1); border: 1px solid rgba(167,139,250,.25); color: #cfc4f5;
+    font-size: .76rem; align-self: center; text-align: center; border-radius: 11px;
+  }
   .msg.emergency {
-    background: var(--danger-light); color: var(--danger); border: 2px solid #fca5a5;
-    border-radius: 14px; align-self: flex-start; max-width: 92%; font-size: .92rem;
+    background: linear-gradient(180deg, rgba(248,113,113,.16), rgba(248,113,113,.07));
+    border: 1px solid rgba(248,113,113,.45); color: #ffd9d9;
+    border-radius: 16px; align-self: flex-start; max-width: 92%;
+    box-shadow: 0 0 30px rgba(248,113,113,.15);
   }
-  .msg.emergency strong { display: block; font-size: 1.05rem; margin-bottom: 6px; }
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .msg.emergency strong { display: block; font-size: 1.02rem; margin-bottom: 6px; color: var(--red); letter-spacing: .02em; }
+  .msg.emergency b { color: #ffb4b4; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
 
-  .typing { display: flex; gap: 4px; padding: 12px 16px; align-self: flex-start; }
-  .typing span { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: blink 1.2s infinite; }
-  .typing span:nth-child(2) { animation-delay: .2s; }
-  .typing span:nth-child(3) { animation-delay: .4s; }
-  @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+  .typing { display: flex; gap: 5px; padding: 13px 16px; align-self: flex-start; }
+  .typing span { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); animation: blink 1.1s infinite; box-shadow: 0 0 6px var(--teal-glow); }
+  .typing span:nth-child(2) { animation-delay: .18s; }
+  .typing span:nth-child(3) { animation-delay: .36s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
 
-  .quick-replies { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); background: #fafcfc; }
+  /* ── Quick replies ──────────────────────────────────────── */
+  .quick-replies { display: flex; flex-wrap: wrap; gap: 9px; padding: 14px 20px; border-top: 1px solid var(--stroke); min-height: 62px; }
   .qr-btn {
-    border: 1.5px solid var(--primary); background: #fff; color: var(--primary);
-    padding: 9px 16px; border-radius: 999px; cursor: pointer; font-size: .84rem;
-    font-weight: 600; transition: all .15s;
+    border: 1px solid rgba(45,212,191,.4); background: rgba(45,212,191,.07); color: #8fecdf;
+    padding: 10px 18px; border-radius: 999px; cursor: pointer; font-size: .84rem; font-weight: 600;
+    transition: all .18s; animation: rise .3s cubic-bezier(.21,1.02,.73,1);
   }
-  .qr-btn:hover { background: var(--primary); color: #fff; }
-  .qr-btn.danger { border-color: var(--danger); color: var(--danger); }
-  .qr-btn.danger:hover { background: var(--danger); color: #fff; }
+  .qr-btn:hover { background: var(--teal); color: #042220; box-shadow: 0 4px 20px var(--teal-glow); transform: translateY(-1px); }
+  .qr-btn.danger { border-color: rgba(248,113,113,.5); background: rgba(248,113,113,.09); color: #fca5a5; }
+  .qr-btn.danger:hover { background: var(--red); color: #2b0505; box-shadow: 0 4px 20px rgba(248,113,113,.4); }
+  .qr-btn.ghost { border-color: var(--stroke); background: var(--glass-2); color: var(--text-2); }
 
   .name-box { align-self: flex-end; width: 82%; }
   .name-box input {
-    width: 100%; padding: 11px 14px; border-radius: 12px;
-    border: 1.5px solid var(--border); font-size: .88rem;
+    width: 100%; padding: 12px 16px; border-radius: 14px; font-size: .9rem;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(45,212,191,.35);
+    color: var(--text); outline: none; transition: all .2s;
   }
+  .name-box input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(45,212,191,.15); }
+  .name-box input::placeholder { color: var(--text-3); }
 
-  /* ── Doctor cards ────────────────────────────────────── */
+  /* ── Doctor cards ────────────────────────────────────────── */
   .doctor-card {
-    border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px;
-    background: #fff; display: flex; align-items: center; gap: 12px;
-    width: 100%; transition: all .15s; cursor: pointer;
+    border: 1px solid var(--stroke); border-radius: var(--r-md); padding: 14px 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    display: flex; align-items: center; gap: 14px; width: 100%; cursor: pointer;
+    transition: all .2s; position: relative; overflow: hidden;
   }
-  .doctor-card:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(13,122,111,.15); }
-  .doctor-card .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .doctor-card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: linear-gradient(180deg, var(--teal), var(--cyan));
+    opacity: 0; transition: opacity .2s;
+  }
+  .doctor-card:hover {
+    border-color: rgba(45,212,191,.45); transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(45,212,191,.12); background: linear-gradient(180deg, rgba(45,212,191,.07), rgba(255,255,255,.02));
+  }
+  .doctor-card:hover::before { opacity: 1; }
+  .doc-avatar {
+    width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #2dd4bf, #6366f1);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: .92rem; color: #06131f;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
+  }
   .doctor-card .info { flex: 1; min-width: 0; }
-  .doctor-card .info h4 { font-size: .9rem; }
-  .doctor-card .info small { color: var(--muted); font-size: .76rem; display: block; margin-top: 2px; }
-  .doctor-card .slot { background: var(--ok-light); color: var(--ok); font-size: .74rem; font-weight: 700; padding: 5px 10px; border-radius: 6px; white-space: nowrap; }
-
-  /* ── Bookings sidebar ────────────────────────────────── */
-  .side-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.05); max-height: 640px; overflow-y: auto;
+  .doctor-card .info h4 { font-size: .9rem; font-weight: 700; letter-spacing: -.01em; }
+  .doctor-card .info small { color: var(--text-3); font-size: .75rem; display: block; margin-top: 3px; }
+  .slot-pill {
+    background: rgba(52,211,153,.12); color: var(--green); border: 1px solid rgba(52,211,153,.3);
+    font-size: .72rem; font-weight: 700; padding: 6px 11px; border-radius: 8px; white-space: nowrap;
   }
-  .side-card h3 { font-size: .95rem; margin-bottom: 4px; }
-  .side-card p.sub { font-size: .75rem; color: var(--muted); margin-bottom: 12px; }
+
+  /* ── Bookings sidebar ───────────────────────────────────── */
+  .side-card { padding: 18px; max-height: 684px; overflow-y: auto; }
+  .side-card::-webkit-scrollbar { width: 5px; }
+  .side-card::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 4px; }
+  .side-card h3 { font-size: 1rem; font-weight: 800; letter-spacing: -.01em; }
+  .side-card p.sub { font-size: .74rem; color: var(--text-3); margin: 4px 0 14px; line-height: 1.5; }
   .booking {
-    border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px;
-    background: #fafafa;
+    border: 1px solid var(--stroke); border-radius: var(--r-md); padding: 14px; margin-bottom: 12px;
+    background: rgba(255,255,255,.03); transition: border-color .2s;
   }
+  .booking:hover { border-color: var(--stroke-hi); }
   .booking .bk-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .booking h4 { font-size: .85rem; }
-  .booking small { color: var(--muted); font-size: .73rem; display: block; margin-top: 3px; }
-  .chip { font-size: .68rem; font-weight: 800; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
-  .chip.pending { background: var(--pending-light); color: var(--pending); }
-  .chip.confirmed { background: var(--ok-light); color: var(--ok); }
-  .chip.referred { background: var(--warn-light); color: var(--warn); }
-  .bk-history { margin-top: 8px; border-top: 1px dashed var(--border); padding-top: 8px; }
-  .bk-history small { line-height: 1.7; }
-  .empty-note { color: var(--muted); font-size: .8rem; text-align: center; padding: 18px 6px; }
+  .booking h4 { font-size: .86rem; font-weight: 700; }
+  .booking small { color: var(--text-3); font-size: .72rem; display: block; margin-top: 3px; }
+  .booking small.warn-line { color: var(--amber); }
+  .chip {
+    font-size: .64rem; font-weight: 800; padding: 5px 10px; border-radius: 999px;
+    text-transform: uppercase; letter-spacing: .08em; white-space: nowrap;
+  }
+  .chip.pending { background: rgba(167,139,250,.14); color: var(--violet); border: 1px solid rgba(167,139,250,.35); }
+  .chip.confirmed { background: rgba(52,211,153,.13); color: var(--green); border: 1px solid rgba(52,211,153,.35); }
+  .chip.referred { background: rgba(251,191,36,.13); color: var(--amber); border: 1px solid rgba(251,191,36,.35); }
+  .bk-history { margin-top: 10px; border-top: 1px dashed rgba(255,255,255,.12); padding-top: 9px; }
+  .bk-history small { line-height: 1.8; color: var(--text-3); }
+  .bk-history small b { color: var(--text-2); font-weight: 600; }
+  .empty-note { color: var(--text-3); font-size: .8rem; text-align: center; padding: 22px 8px; line-height: 1.6; }
 
-  /* ── Doctor dashboard ─────────────────────────────────── */
-  .doc-select-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 18px; margin-bottom: 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  /* ── Doctor dashboard ────────────────────────────────────── */
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 6px; }
+  .stat { padding: 18px 20px; position: relative; overflow: hidden; }
+  .stat::after {
+    content: ""; position: absolute; right: -20px; top: -20px; width: 90px; height: 90px;
+    border-radius: 50%; background: radial-gradient(circle, rgba(45,212,191,.14), transparent 70%);
   }
-  .doc-select-card label { font-weight: 700; font-size: .88rem; }
-  .doc-select-card select {
-    padding: 10px 14px; border-radius: 8px; border: 1.5px solid var(--border); font-size: .88rem;
-    background: #fff; min-width: 320px; color: var(--text); font-weight: 600;
+  .stat .num { font-size: 1.9rem; font-weight: 800; letter-spacing: -.03em;
+    background: linear-gradient(90deg, #fff, #9adfd6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .stat .lbl { font-size: .68rem; color: var(--text-3); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; margin-top: 3px; }
+
+  .doc-select-card { padding: 18px 20px; margin: 16px 0; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .doc-select-card label { font-weight: 700; font-size: .86rem; color: var(--text-2); }
+  select {
+    padding: 11px 15px; border-radius: 11px; font-size: .86rem; font-weight: 600;
+    background: rgba(255,255,255,.05); border: 1px solid var(--stroke-hi);
+    color: var(--text); min-width: 330px; cursor: pointer; transition: border-color .2s;
   }
-  .req-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  select:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(45,212,191,.12); }
+  select option { background: #0d1a2b; color: var(--text); }
+  .doc-select-card small { color: var(--text-3); font-size: .73rem; }
+
+  .req-card { padding: 20px; margin-bottom: 15px; animation: rise .35s cubic-bezier(.21,1.02,.73,1); }
+  .req-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+  .req-card h3 { font-size: 1rem; font-weight: 800; letter-spacing: -.01em; }
+  .triage-tags { display: flex; flex-wrap: wrap; gap: 7px; margin: 12px 0; }
+  .triage-tags span {
+    background: rgba(45,212,191,.1); color: #8fecdf; border: 1px solid rgba(45,212,191,.25);
+    font-size: .72rem; font-weight: 700; padding: 5px 12px; border-radius: 999px;
   }
-  .req-card .req-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
-  .req-card h3 { font-size: .95rem; }
-  .triage-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
-  .triage-tags span { background: var(--primary-light); color: var(--primary-dark); font-size: .72rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
-  .req-card .slot-line { font-size: .85rem; font-weight: 700; color: var(--ok); margin-bottom: 4px; }
-  .req-card .ref-note { font-size: .76rem; color: var(--muted); margin-bottom: 12px; }
-  .req-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .slot-line { font-size: .88rem; font-weight: 700; color: var(--green); margin-bottom: 5px; }
+  .ref-note { font-size: .76rem; color: var(--text-3); margin-bottom: 14px; }
+  .req-actions { display: flex; gap: 11px; margin-top: 14px; flex-wrap: wrap; }
   .btn {
-    border: none; border-radius: 8px; padding: 10px 22px; font-size: .85rem; font-weight: 700;
-    cursor: pointer; transition: all .15s;
+    border: none; border-radius: 12px; padding: 12px 26px; font-size: .86rem; font-weight: 800;
+    cursor: pointer; transition: all .18s; letter-spacing: .01em;
   }
-  .btn-accept { background: var(--ok); color: #fff; }
-  .btn-accept:hover { background: #116932; }
-  .btn-refer { background: #fff; color: var(--warn); border: 1.5px solid var(--warn); }
-  .btn-refer:hover { background: var(--warn); color: #fff; }
-  .refer-box { display: none; margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 14px; }
-  .refer-box.open { display: block; }
-  .refer-box select {
-    padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--border); font-size: .84rem; min-width: 300px; background: #fff; margin-top: 8px;
+  .btn-accept {
+    background: linear-gradient(135deg, #10b981, #059669); color: #fff;
+    box-shadow: 0 4px 18px rgba(16,185,129,.3);
   }
-  .refer-box .btn { margin-top: 10px; background: var(--warn); color: #fff; }
+  .btn-accept:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(16,185,129,.4); }
+  .btn-refer { background: transparent; color: var(--amber); border: 1.5px solid rgba(251,191,36,.5); }
+  .btn-refer:hover { background: rgba(251,191,36,.12); border-color: var(--amber); transform: translateY(-2px); }
+  .refer-box { display: none; margin-top: 16px; border-top: 1px dashed rgba(255,255,255,.12); padding-top: 16px; }
+  .refer-box.open { display: block; animation: rise .25s ease; }
+  .refer-box label { font-size: .78rem; font-weight: 700; color: var(--text-2); }
+  .refer-box select { margin-top: 10px; }
+  .refer-box .btn { margin-top: 12px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; box-shadow: 0 4px 18px rgba(245,158,11,.25); }
   .chain-alert {
-    background: var(--danger-light); border: 1.5px solid #fca5a5; color: var(--danger);
-    border-radius: 10px; padding: 10px 14px; font-size: .78rem; font-weight: 600; margin-top: 10px;
+    background: linear-gradient(90deg, rgba(248,113,113,.15), rgba(248,113,113,.05));
+    border: 1px solid rgba(248,113,113,.4); color: #fda4a4;
+    border-radius: var(--r-sm); padding: 12px 15px; font-size: .78rem; font-weight: 600; margin: 10px 0; line-height: 1.55;
   }
-  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; }
-  .stat {
-    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  .req-list-empty { padding: 30px; text-align: center; }
+
+  footer {
+    position: relative; z-index: 1; text-align: center; color: var(--text-3);
+    font-size: .74rem; padding: 28px 20px 40px; line-height: 1.8;
+    border-top: 1px solid var(--stroke);
   }
-  .stat .num { font-size: 1.5rem; font-weight: 800; color: var(--primary-dark); }
-  .stat .lbl { font-size: .72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-top: 2px; }
-  footer { text-align: center; color: var(--muted); font-size: .74rem; padding: 24px; }
+  footer b { color: var(--text-2); }
   .hidden { display: none !important; }
 </style>
 </head>
 <body>
+
+<div class="aurora"></div>
+<div class="grid-lines"></div>
 
 <header>
   <div class="brand">
@@ -220,30 +363,35 @@
       <small>Symptom Triage &amp; Specialist Booking Assistant</small>
     </div>
   </div>
-  <div class="view-toggle">
+  <div class="seg">
     <button id="tab-patient" class="active" onclick="switchView('patient')">💬 Patient Chat</button>
     <button id="tab-doctor" onclick="switchView('doctor')">🩺 Doctor Dashboard</button>
   </div>
 </header>
 
-<div class="disclaimer">
-  ⚠️ MedRoute does not diagnose conditions or recommend treatment. It matches symptoms to a medical specialty and facilitates booking only. For emergencies, call 10177 (SA Ambulance) or go to your nearest emergency room.
+<div class="notice">
+  ⚠️ MedRoute does not diagnose conditions or recommend treatment — it matches symptoms to a medical specialty and facilitates booking only. Emergencies: call <b>10177</b> or go to your nearest emergency room.
 </div>
 
 <!-- ══════════════════ PATIENT VIEW ══════════════════ -->
 <div class="wrap" id="view-patient">
   <div class="patient-grid">
 
-    <div class="chat-card">
+    <div class="glass chat-card">
       <div class="chat-head">
-        <div class="avatar">🤖</div>
+        <div class="bot-avatar">🤖</div>
         <div>
           <h2>MedRoute Assistant</h2>
-          <small><span class="status-dot"></span> Online — guided symptom triage</small>
+          <small><span class="pulse-dot"></span> Online — guided symptom triage</small>
         </div>
-        <div style="margin-left:auto">
-          <button class="qr-btn" style="padding:7px 14px; font-size:.78rem" onclick="restartTriage()">↺ Restart</button>
-        </div>
+        <button class="icon-btn" onclick="restartTriage()">↺ Restart</button>
+      </div>
+      <div class="stepper">
+        <div class="step" id="st-1"></div>
+        <div class="step" id="st-2"></div>
+        <div class="step" id="st-3"></div>
+        <div class="step" id="st-4"></div>
+        <div class="step" id="st-5"></div>
       </div>
       <div id="chat-log"></div>
       <div class="quick-replies" id="quick-replies"></div>
@@ -251,7 +399,7 @@
 
     <div>
       <div class="panel-title">My Bookings</div>
-      <div class="side-card">
+      <div class="glass side-card">
         <h3>Booking Status</h3>
         <p class="sub">Every request stays visible until your doctor acts on it (BR-3).</p>
         <div id="booking-list"></div>
@@ -265,10 +413,10 @@
 <div class="wrap hidden" id="view-doctor">
   <div class="stat-row" id="doc-stats"></div>
 
-  <div class="doc-select-card">
+  <div class="glass doc-select-card">
     <label>👩‍⚕️ You are viewing as:</label>
     <select id="doctor-select" onchange="renderDoctorRequests()"></select>
-    <small style="color:var(--muted); font-size:.75rem">Prototype — no authentication in this iteration</small>
+    <small>Prototype — no authentication in this iteration</small>
   </div>
 
   <div class="panel-title">Incoming Booking Requests (UC-02)</div>
@@ -276,7 +424,7 @@
 </div>
 
 <footer>
-  MedRoute Prototype · Clickatell 1-Month AI Bootcamp — Week 1 · Author: Freddy Thosago · September 2026<br/>
+  <b>MedRoute Prototype</b> · Clickatell 1-Month AI Bootcamp — Week 1 · Author: Freddy Thosago · September 2026<br/>
   Mock data only — no real patient health data is captured or stored. Triage answers exist for the session only.
 </footer>
 
@@ -296,13 +444,13 @@ const SPECIALTIES = {
 };
 
 const CATEGORIES = [
-  { key: 'skin',         label: '🧴 Skin — rash, irritation, spots',    specialty: SPECIALTIES.skin },
+  { key: 'skin',         label: '🧴 Skin — rash, irritation, spots',      specialty: SPECIALTIES.skin },
   { key: 'chest',        label: '❤️ Chest / Heart — pain, palpitations', specialty: SPECIALTIES.chest },
-  { key: 'digestive',    label: '🍽️ Digestive — stomach, bowel',      specialty: SPECIALTIES.digestive },
+  { key: 'digestive',    label: '🍽️ Digestive — stomach, bowel',        specialty: SPECIALTIES.digestive },
   { key: 'joint',        label: '🦴 Joint / Bone — pain, stiffness',    specialty: SPECIALTIES.joint },
   { key: 'neurological', label: '🧠 Neurological — headaches, numbness', specialty: SPECIALTIES.neurological },
-  { key: 'mood',         label: '💛 Mood — stress, anxiety, low mood', specialty: SPECIALTIES.mood },
-  { key: 'general',      label: '🩹 General — something else',         specialty: SPECIALTIES.general }
+  { key: 'mood',         label: '💛 Mood — stress, anxiety, low mood',   specialty: SPECIALTIES.mood },
+  { key: 'general',      label: '🩹 General — something else',          specialty: SPECIALTIES.general }
 ];
 
 /* Emergency red-flag screening (AF-01) — asked before continuing triage */
@@ -338,7 +486,7 @@ const DOCTORS = [
   { id: 'd9',  name: 'Dr. Mark Goldberg',    specialty: 'neur', specialtyLabel: 'Neurologist',         location: 'Houghton, JHB',     distance: 5.4,  slots: ['Mon 11:00', 'Wed 15:30'] },
   { id: 'd10', name: 'Dr. Nomvula Zulu',    specialty: 'neur', specialtyLabel: 'Neurologist',          location: 'Sandton, JHB',      distance: 6.9,  slots: ['Tue 08:15', 'Fri 13:45'] },
   { id: 'd11', name: 'Dr. Sarah Cohen',     specialty: 'psyc', specialtyLabel: 'Psychiatrist',         location: 'Greenside, JHB',   distance: 4.8,  slots: ['Mon 09:30', 'Wed 17:00'] },
-  { id: 'd12', name: 'Dr. Kagiso Rathebe',  specialty: 'psyc', specialtyLabel: 'Psychiatrist',         location: 'Rosebank, JHB',    distance: 7.1,  slots: ['Tue 12:00', 'Thu 16:30'] },
+  { id: 'd12', name: 'Dr. Kagiso Rathebe',   specialty: 'psyc', specialtyLabel: 'Psychiatrist',         location: 'Rosebank, JHB',    distance: 7.1,  slots: ['Tue 12:00', 'Thu 16:30'] },
   { id: 'd13', name: 'Dr. Bongani Sithole', specialty: 'gp',   specialtyLabel: 'General Practitioner', location: 'Braamfontein, JHB', distance: 2.3,  slots: ['Mon 08:00', 'Tue 08:00', 'Wed 08:00', 'Thu 08:00', 'Fri 08:00'] },
   { id: 'd14', name: 'Dr. Anna Liebenberg', specialty: 'gp',   specialtyLabel: 'General Practitioner', location: 'Auckland Park, JHB', distance: 3.5, slots: ['Tue 14:00', 'Thu 11:00'] }
 ];
@@ -347,6 +495,9 @@ const SPECIALTY_TO_KEY = {
   'Dermatologist': 'derm', 'Cardiologist': 'card', 'Gastroenterologist': 'gast',
   'Orthopaedic Surgeon': 'orth', 'Neurologist': 'neur', 'Psychiatrist': 'psyc', 'General Practitioner': 'gp'
 };
+
+/* Doctor initials for generated avatars */
+const initials = name => name.replace('Dr. ', '').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 
 /* ── Booking store (localStorage persistence for the demo) ───────── */
 let bookings = JSON.parse(localStorage.getItem('medroute_bookings') || '[]');
@@ -380,7 +531,7 @@ function showReplies(options) {
   qrBox.innerHTML = '';
   options.forEach(opt => {
     const b = document.createElement('button');
-    b.className = 'qr-btn' + (opt.danger ? ' danger' : '');
+    b.className = 'qr-btn' + (opt.danger ? ' danger' : '') + (opt.ghost ? ' ghost' : '');
     b.textContent = opt.label;
     b.onclick = () => {
       qrBox.innerHTML = '';
@@ -391,6 +542,15 @@ function showReplies(options) {
   });
 }
 
+/* ── Triage progress stepper ────────────────────────────────────── */
+function updateStepper(step) {
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('st-' + i);
+    el.classList.toggle('done', i < step);
+    el.classList.toggle('on', i === step);
+  }
+}
+
 /* ── Triage state machine (UC-01) ───────────────────────────────── */
 let triage = null;
 
@@ -398,6 +558,7 @@ function restartTriage() {
   chatLog.innerHTML = '';
   qrBox.innerHTML = '';
   triage = { name: '', category: '', duration: '', severity: '' };
+  updateStepper(1);
   greet();
 }
 
@@ -422,7 +583,8 @@ async function greet() {
 }
 
 async function askCategory() {
-  await botSay(`Nice to meet you, ${triage.name}. What general area is bothering you most right now?`);
+  updateStepper(1);
+  await botSay('Nice to meet you, ' + triage.name + '. What general area is bothering you most right now?');
   showReplies(CATEGORIES.map(c => ({ label: c.label, action: () => selectCategory(c) })));
 }
 
@@ -430,7 +592,7 @@ function selectCategory(cat) {
   triage.category = cat;
   const screen = EMERGENCY_SCREENS[cat.key];
   if (screen) askEmergencyScreen(screen);
-  else askDuration();
+  else { updateStepper(2); askDuration(); }
 }
 
 /* AF-01 — Emergency red-flag screening */
@@ -441,11 +603,12 @@ async function askEmergencyScreen(screen) {
     danger: true,
     action: () => triggerEmergency(o.label)
   }));
-  opts.push({ label: '✅ None of these', action: askDuration });
+  opts.push({ label: '✅ None of these', action: () => { updateStepper(2); askDuration(); } });
   showReplies(opts);
 }
 
 function triggerEmergency(sign) {
+  updateStepper(0); /* halt — no progress on the emergency path */
   const div = document.createElement('div');
   div.className = 'msg emergency';
   div.innerHTML =
@@ -457,7 +620,7 @@ function triggerEmergency(sign) {
   chatLog.appendChild(div);
   chatLog.scrollTop = chatLog.scrollHeight;
   addMsg('Triage halted for your safety. Once you are safe and well, you can restart triage for a separate, non-emergency concern.', 'system');
-  showReplies([{ label: '↺ Restart triage for a different concern', action: restartTriage }]);
+  showReplies([{ label: '↺ Restart triage for a different concern', ghost: true, action: restartTriage }]);
 }
 
 async function askDuration() {
@@ -470,6 +633,7 @@ async function askDuration() {
 }
 
 async function askSeverity() {
+  updateStepper(3);
   await botSay('How would you rate the severity?');
   showReplies([
     { label: '🟢 Mild',     action: () => { triage.severity = 'Mild'; showShortlist(); } },
@@ -480,6 +644,7 @@ async function askSeverity() {
 
 /* BR-1: only doctors whose specialty matches the triage outcome */
 async function showShortlist() {
+  updateStepper(4);
   const specialtyKey = SPECIALTY_TO_KEY[triage.category.specialty];
   const matches = DOCTORS.filter(d => d.specialty === specialtyKey)
                         .sort((a, b) => a.distance - b.distance);
@@ -497,12 +662,12 @@ async function showShortlist() {
     const card = document.createElement('div');
     card.className = 'doctor-card';
     card.innerHTML =
-      '<div class="avatar">👩\u200D⚕️</div>' +
+      '<div class="doc-avatar">' + initials(d.name) + '</div>' +
       '<div class="info">' +
         '<h4>' + d.name + ' — ' + d.specialtyLabel + '</h4>' +
         '<small>📍 ' + d.location + ' · ' + d.distance + ' km away</small>' +
       '</div>' +
-      '<div class="slot">next: ' + d.slots[0] + '</div>';
+      '<div class="slot-pill">next: ' + d.slots[0] + '</div>';
     card.onclick = () => selectDoctor(d);
     chatLog.appendChild(card);
   });
@@ -515,11 +680,12 @@ async function selectDoctor(doc) {
   await botSay('Great choice. ' + doc.name + ' (' + doc.specialtyLabel + ', ' + doc.location + ') has these slots available:');
   showReplies([
     ...doc.slots.map(s => ({ label: '📅 ' + s, action: () => requestBooking(doc, s) })),
-    { label: '↺ Pick a different doctor', action: restartTriage }
+    { label: '↺ Pick a different doctor', ghost: true, action: restartTriage }
   ]);
 }
 
 async function requestBooking(doc, slot) {
+  updateStepper(5);
   const bk = {
     id: 'BK-' + Date.now().toString(36).toUpperCase(),
     patientName: triage.name,
@@ -541,13 +707,13 @@ async function requestBooking(doc, slot) {
 
   await botSay('✅ Your request has been sent to ' + doc.name + ' for <b>' + slot + '</b>.');
   await botSay(
-    'Booking reference: <b>' + bk.id + '</b> — status: <b style="color:var(--pending)">PENDING</b>. ' +
+    'Booking reference: <b>' + bk.id + '</b> — status: <b style="color:#c4b5fd">PENDING</b>. ' +
     'Your doctor will either accept it or refer you to an even better-suited colleague. ' +
     'Track it in "My Bookings" on the right, or switch to the Doctor Dashboard to see the marketplace in action.',
     true
   );
   showReplies([
-    { label: '↺ Start a new triage', action: restartTriage },
+    { label: '↺ Start a new triage', ghost: true, action: restartTriage },
     { label: '👀 Switch to Doctor Dashboard', action: () => switchView('doctor') }
   ]);
 }
@@ -558,15 +724,15 @@ function renderBookings() {
   const mine = bookings.filter(b => b.patientName === (triage ? triage.name : ''));
   const show = mine.length ? mine : bookings.slice(-5);
   if (!show.length) {
-    box.innerHTML = '<div class="empty-note">No bookings yet. Complete a triage to request an appointment.</div>';
+    box.innerHTML = '<div class="empty-note">No bookings yet.<br/>Complete a triage to request an appointment.</div>';
     return;
   }
   box.innerHTML = show.slice().reverse().map(b => {
     const chainNote = b.chain > 0
-      ? '<small style="color:var(--warn)">↪ Referred ' + b.chain + '× — now with ' + b.doctorName + '</small>'
+      ? '<small class="warn-line">↪ Referred ' + b.chain + '× — now with ' + b.doctorName + '</small>'
       : '';
     const hist = b.history.map(h =>
-      '<small>• ' + h.event + ' <span style="opacity:.6">(' + h.at + ')</span></small>'
+      '<small>• <b>' + h.event + '</b> <span style="opacity:.55">(' + h.at + ')</span></small>'
     ).join('');
     return '<div class="booking">' +
       '<div class="bk-top">' +
@@ -610,19 +776,19 @@ function renderDoctorRequests() {
     referrals: bookings.filter(b => b.doctorId === docId && b.chain > 0).length
   };
   document.getElementById('doc-stats').innerHTML =
-    '<div class="stat"><div class="num">' + stats.pending + '</div><div class="lbl">Pending</div></div>' +
-    '<div class="stat"><div class="num">' + stats.confirmed + '</div><div class="lbl">Confirmed</div></div>' +
-    '<div class="stat"><div class="num">' + stats.referrals + '</div><div class="lbl">Received via referral</div></div>';
+    '<div class="glass stat"><div class="num">' + stats.pending + '</div><div class="lbl">Pending</div></div>' +
+    '<div class="glass stat"><div class="num">' + stats.confirmed + '</div><div class="lbl">Confirmed</div></div>' +
+    '<div class="glass stat"><div class="num">' + stats.referrals + '</div><div class="lbl">Received via referral</div></div>';
 
   const list = document.getElementById('request-list');
   if (!mine.length) {
-    list.innerHTML = '<div class="side-card" style="max-height:none"><div class="empty-note">📭 No pending requests for this doctor right now. Use the Patient Chat to create a booking, or select another doctor.</div></div>';
+    list.innerHTML = '<div class="glass req-list-empty"><div class="empty-note">📭 No pending requests for this doctor right now.<br/>Use the Patient Chat to create a booking, or select another doctor.</div></div>';
     return;
   }
   list.innerHTML = '';
   mine.forEach(bk => {
     const card = document.createElement('div');
-    card.className = 'req-card';
+    card.className = 'glass req-card';
     const chainBlock = bk.chain >= 3
       ? '<div class="chain-alert">⚠️ BR-5 alert: this booking has been referred ' + bk.chain + ' times. In production, an administrator would be notified beyond 3 referrals to prevent patients being passed around indefinitely.</div>'
       : (bk.chain > 0
@@ -649,7 +815,7 @@ function renderDoctorRequests() {
         '<button class="btn btn-refer" onclick="toggleReferBox(\'' + bk.id + '\')">↪ Refer to another specialist</button>' +
       '</div>' +
       '<div class="refer-box" id="refer-' + bk.id + '">' +
-        '<label style="font-size:.8rem; font-weight:700; color:var(--muted)">Choose target specialist (BR-4 — a new bookable record is always created):</label>' +
+        '<label>Choose target specialist (BR-4 — a new bookable record is always created):</label>' +
         '<select id="refer-select-' + bk.id + '">' +
           DOCTORS.filter(d => d.id !== docId).map(d =>
             '<option value="' + d.id + '">' + d.name + ' — ' + d.specialtyLabel + ' (' + d.location + ')</option>'
